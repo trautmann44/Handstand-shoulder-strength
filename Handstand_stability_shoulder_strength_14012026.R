@@ -975,7 +975,6 @@ summary(model_b)
                                           ncol = 3))
 
 
-
 ggsave("E:/data/Statistics/Plots/handstand_footscan_plot.tiff", plot = all_eff_plots, device = "tiff",
        width = 10.0, height = 5, dpi = 600, units = "in")
 
