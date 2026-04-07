@@ -1,0 +1,692 @@
+---
+title: "Does shoulder isometric strength affect stability during handstands?"
+author: "Roman Malíř"
+date: "2026-01-09"
+output:
+  cleanrmd::html_document_clean:
+    theme: water-dark
+    toc: true
+    toc_float: true
+---
+
+# Packages
+#### We used: `readxl`[^note1], `writexl`[^note2], `dplyr`[^note3], `ggplot2`[^note4], `rstatix`[^note5],`lmtest`[^note6], `car`[^note7], `tidyverse`[^note8], `tidyr`[^note9],`ggdist`[^note10], `fitdistrplus`[^note11], `gridExtra`[^note12], `ggthemes`[^note13], `tidyquant`[^note14],`irr`[^note15],`rempsyc`[^note16], `officer`[^note17], `flextable`[^note18],`DHARMa`[^note19], `performance`[^note20], `sjPlot`[^note21], `Gmisc`[^note22], `jtools`[^note23], `glue`[^note24], `apaTables`[^note25], `htmlTable`[^note26], `magrittr`[^note27].
+
+```{r echo=T, results='hide', message=FALSE}
+packages_needed <- c("readxl", "writexl", "dplyr", "ggplot2", "rstatix", "lmtest", "car", 
+                     "tidyverse", "tidyr", "ggdist", "fitdistrplus", "gridExtra",
+                     "ggthemes", "tidyquant", "irr", "rempsyc", "apaTables",
+                     "officer", "flextable", "performance", "sjPlot", "jtools", 
+                     "DHARMa", "Gmisc", "glue", "htmlTable", "magrittr")
+
+lapply(packages_needed, FUN = require, character.only = T)
+```
+
+### Table with used packages (name/description/version)
+```{r include=FALSE}
+get_package_info <- function(package_name) {
+  if (requireNamespace(package_name, quietly = TRUE)) {
+    pkg_desc <- packageDescription(package_name)
+    
+    package_info <- data.frame(
+      Package = package_name,
+      Description = ifelse("Title" %in% names(pkg_desc), pkg_desc[["Title"]], NA),
+      Version = ifelse("Version" %in% names(pkg_desc), pkg_desc[["Version"]], NA)
+    )
+    return(package_info)
+  } else {
+    return(NULL)
+  }
+}
+
+# Get information for each loaded package
+package_info <- lapply(packages_needed, get_package_info)
+
+# Filter out NULL values (packages that weren't loaded)
+package_info <- Filter(Negate(is.null), package_info)
+
+# Combine the information into a single data frame
+package_info_df <- do.call(rbind, package_info)
+
+# Make a table
+writexl::write_xlsx(package_info_df, "package_info_handstand_shoulder_strength_ratio.xlsx")
+packages <- read_excel("package_info_handstand_shoulder_strength_ratio.xlsx")
+```
+
+```{r}
+packages %>% as_tibble() %>% print(n = nrow(packages))
+```
+
+
+# Data import
+```{r}
+data <- readxl::read_xlsx('E:/data/Statistics/Data/handstand_data.xlsx', sheet = "Sheet_3")
+str(data)
+```
+
+# ICC
+## ICC of attempts
+```{r}
+VALD_flex_L <- irr::icc(data[, c('VALD_flex_L_N_1', 'VALD_flex_L_N_2')],
+                        model = "oneway", type = "consistency", unit = "average")
+VALD_flex_L_summary <- cbind("ICC value" = round(VALD_flex_L$value, 3),
+                             "Lower 95%CI" = round(VALD_flex_L$lbound, 3),
+                             "Upper 95%CI" = round(VALD_flex_L$ubound, 3),
+                             "p-value" = VALD_flex_L$p.value)
+rownames(VALD_flex_L_summary) <- "VALD_flex_L_summary"
+
+VALD_flex_R <- irr::icc(data[, c('VALD_flex_R_N_1', 'VALD_flex_R_N_2')],
+                        model = "oneway", type = "consistency", unit = "average")
+VALD_flex_R_summary <- cbind("ICC value" = round(VALD_flex_R$value, 3),
+                             "Lower 95%CI" = round(VALD_flex_R$lbound, 3),
+                             "Upper 95%CI" = round(VALD_flex_R$ubound, 3),
+                             "p-value" = VALD_flex_R$p.value)
+rownames(VALD_flex_R_summary) <- "VALD_flex_R_summary"
+
+VALD_ext_L <- irr::icc(data[, c('VALD_ext_L_N_1', 'VALD_ext_L_N_2')],
+                       model = "oneway", type = "consistency", unit = "average")
+VALD_ext_L_summary <- cbind("ICC value" = round(VALD_ext_L$value, 3),
+                            "Lower 95%CI" = round(VALD_ext_L$lbound, 3),
+                            "Upper 95%CI" = round(VALD_ext_L$ubound, 3),
+                            "p-value" = VALD_ext_L$p.value)
+rownames(VALD_ext_L_summary) <- "VALD_ext_L_summary"
+
+VALD_ext_R <- irr::icc(data[, c('VALD_ext_R_N_1', 'VALD_ext_R_N_2')],
+                       model = "oneway", type = "consistency", unit = "average")
+VALD_ext_R_summary <- cbind("ICC value" = round(VALD_ext_R$value, 3),
+                            "Lower 95%CI" = round(VALD_ext_R$lbound, 3),
+                            "Upper 95%CI" = round(VALD_ext_R$ubound, 3),
+                            "p-value" = VALD_ext_R$p.value)
+rownames(VALD_ext_R_summary) <- "VALD_ext_R_summary"
+
+# ------------------------------------------------- ICC - three trials ------------------------------------------------ #
+
+VALD_flex_L_three <- irr::icc(data[ c(12:nrow(data)), c('VALD_flex_L_N_1', 'VALD_flex_L_N_2', 'VALD_flex_L_N_3')],
+                              model = "oneway", type = "consistency", unit = "average")
+VALD_flex_L_three_summary <- cbind("ICC value" = round(VALD_flex_L_three$value, 3),
+                                   "Lower 95%CI" = round(VALD_flex_L_three$lbound, 3),
+                                   "Upper 95%CI" = round(VALD_flex_L_three$ubound, 3),
+                                   "p-value" = VALD_flex_L_three$p.value)
+rownames(VALD_flex_L_three_summary) <- "VALD_flex_L_three_summary"
+
+VALD_flex_R_three <- irr::icc(data[ c(12:nrow(data)), c('VALD_flex_R_N_1', 'VALD_flex_R_N_2', 'VALD_flex_R_N_3')],
+                              model = "oneway", type = "consistency", unit = "average")
+VALD_flex_R_three_summary <- cbind("ICC value" = round(VALD_flex_R_three$value, 3),
+                                   "Lower 95%CI" = round(VALD_flex_R_three$lbound, 3),
+                                   "Upper 95%CI" = round(VALD_flex_R_three$ubound, 3),
+                                   "p-value" = VALD_flex_R_three$p.value)
+rownames(VALD_flex_R_three_summary) <- "VALD_flex_R_three_summary"
+
+VALD_ext_L_three <- irr::icc(data[ c(12:nrow(data)), c('VALD_ext_L_N_1', 'VALD_ext_L_N_2', 'VALD_ext_L_N_3')],
+                             model = "oneway", type = "consistency", unit = "average")
+VALD_ext_L_three_summary <- cbind("ICC value" = round(VALD_ext_L_three$value, 3),
+                                  "Lower 95%CI" = round(VALD_ext_L_three$lbound, 3),
+                                  "Upper 95%CI" = round(VALD_ext_L_three$ubound, 3),
+                                  "p-value" = VALD_ext_L_three$p.value)
+rownames(VALD_ext_L_three_summary) <- "VALD_ext_L_three_summary"
+
+VALD_ext_R_three <- irr::icc(data[ c(12:nrow(data)), c('VALD_ext_R_N_1', 'VALD_ext_R_N_2', 'VALD_ext_R_N_3')],
+                             model = "oneway", type = "consistency", unit = "average")
+VALD_ext_R_three_summary <- cbind("ICC value" = round(VALD_ext_R_three$value, 3),
+                                  "Lower 95%CI" = round(VALD_ext_R_three$lbound, 3),
+                                  "Upper 95%CI" = round(VALD_ext_R_three$ubound, 3),
+                                  "p-value" = VALD_ext_R_three$p.value)
+rownames(VALD_ext_R_three_summary) <- "VALD_ext_R_three_summary"
+
+# All ICCs
+ICC_all <- rbind(VALD_flex_L_summary, VALD_flex_R_summary, 
+                 VALD_ext_L_summary, VALD_ext_R_summary, 
+                 VALD_flex_L_three_summary, VALD_flex_R_three_summary, 
+                 VALD_ext_L_three_summary, VALD_ext_R_three_summary)
+```
+
+
+```{r}
+ICC_all <- as.data.frame(ICC_all)
+
+# round p values
+ICC_all$`p-value` <- round(ICC_all$`p-value`, 4)
+ICC_all$`discernible` <- ifelse(ICC_all$`p-value` <= 0.0500, "YES", "NO")
+
+
+# range of ICC values
+range(ICC_all$`ICC value`)
+
+
+ICC_all$Variable <- rownames(ICC_all)
+
+ICC_all <- ICC_all[, c(6, 1:5)]
+ICC_all$Variable <- gsub("_summary", "", ICC_all$Variable)
+
+ICC_all <- ICC_all %>%
+  mutate(variable = dplyr::recode(Variable,
+                               VALD_flex_L = 'Left flexion (2)',
+                               VALD_flex_R = 'Right flexion (2)', 
+                               VALD_ext_L = 'Left extension (2)',
+                               VALD_ext_R = 'Right extension (2)',
+                               VALD_flex_L_three = 'Left flexion (3)',
+                               VALD_flex_R_three = 'Right flexion (3)',
+                               VALD_ext_L_three = "Left extension (3)",
+                               VALD_ext_R_three = "Right extension (3)"))
+
+
+ICC_all <- ICC_all[, c(7, 2, 3, 4, 5)]
+
+ICC_all <- as.data.frame(ICC_all)
+```
+
+
+```{r}
+ICC_all$`95%CI` <- paste0("[", 
+                          round(ICC_all$`Lower 95%CI`, 
+                                digits = 3),
+                          ", ", 
+                          round(ICC_all$`Upper 95%CI`, 
+                                digits = 3), 
+                          "]")
+
+ICC_all <- ICC_all[, c(1, 2, 6, 5)]
+ICC_all$`p-value` <- "< 0.001"
+```
+
+### Mean values of attempts and left & right
+```{r}
+data$VALD_flex_L <- rowMeans(data[, c('VALD_flex_L_N_1', 'VALD_flex_L_N_2', 'VALD_flex_L_N_3')], na.rm = T)
+data$VALD_flex_R <- rowMeans(data[, c('VALD_flex_R_N_1', 'VALD_flex_R_N_2', 'VALD_flex_R_N_3')], na.rm = T)
+data$VALD_ext_L <- rowMeans(data[, c('VALD_ext_L_N_1', 'VALD_ext_L_N_2', 'VALD_ext_L_N_3')], na.rm = T)
+data$VALD_ext_R <- rowMeans(data[, c('VALD_ext_R_N_1', 'VALD_ext_R_N_2', 'VALD_ext_R_N_3')], na.rm = T)
+
+```
+
+## ICC right / left
+```{r}
+VALD_flex <- irr::icc(data[, c('VALD_flex_L', 'VALD_flex_R')],
+                        model = "twoway", type = "consistency", unit = "average")
+VALD_flex_summary <- cbind("ICC value" = round(VALD_flex$value, 3),
+                             "Lower 95%CI" = round(VALD_flex$lbound, 3),
+                             "Upper 95%CI" = round(VALD_flex$ubound, 3),
+                             "p-value" = VALD_flex$p.value)
+rownames(VALD_flex_summary) <- "VALD_flex_summary"
+
+VALD_ext <- irr::icc(data[, c('VALD_ext_L', 'VALD_ext_R')],
+                      model = "twoway", type = "consistency", unit = "average")
+VALD_ext_summary <- cbind("ICC value" = round(VALD_ext$value, 3),
+                           "Lower 95%CI" = round(VALD_ext$lbound, 3),
+                           "Upper 95%CI" = round(VALD_ext$ubound, 3),
+                           "p-value" = VALD_ext$p.value)
+rownames(VALD_ext_summary) <- "VALD_ext_summary"
+```
+
+
+```{r}
+ICC_right_left <- rbind(VALD_flex_summary, VALD_ext_summary)
+
+#print(ICC_right_left)  
+
+ICC_right_left <- as.data.frame(ICC_right_left)
+
+#str(ICC_right_left)
+
+# round p values
+ICC_right_left$`p-value` <- round(ICC_right_left$`p-value`, 4)
+
+
+ICC_right_left$`discernible` <- ifelse(ICC_right_left$`p-value` <= 0.0500, "YES", "NO")
+#print(ICC_right_left)
+
+# range of ICC values
+range(ICC_right_left$`ICC value`)
+
+
+ICC_right_left$Variable <- rownames(ICC_right_left)
+#print(ICC_right_left)
+ICC_right_left <- ICC_right_left[, c(6, 1:5)]
+ICC_right_left$Variable <- gsub("_summary", "", ICC_right_left$Variable)
+#print(ICC_right_left)
+
+ICC_right_left <- ICC_right_left %>%
+  mutate(variable = dplyr::recode(Variable, 
+                           VALD_flex = 'Flexion',
+                           VALD_ext = 'Extension'))
+
+#print(ICC_right_left)
+
+ICC_right_left <- ICC_right_left[, c(7, 2, 3, 4, 5)]
+
+#print(ICC_right_left)
+
+ICC_right_left <- as.data.frame(ICC_right_left)
+
+
+ICC_right_left$`95%CI` <- paste0("[", 
+                          round(ICC_right_left$`Lower 95%CI`, 
+                                digits = 3),
+                          ", ", 
+                          round(ICC_right_left$`Upper 95%CI`, 
+                                digits = 3), 
+                          "]")
+
+
+#print(ICC_right_left)
+
+ICC_right_left <- ICC_right_left[, c(1, 2, 6, 5)]
+
+#print(ICC_right_left)
+
+ICC_right_left$`p-value` <- "< 0.001"
+
+#print(ICC_right_left)
+```
+
+
+## all ICCs
+```{r}
+ICC_total <- rbind(ICC_all, ICC_right_left)
+print(ICC_total)
+```
+
+### Mean values of flexion and extension
+```{r}
+data$VALD_flex <- rowMeans(data[, c('VALD_flex_L', 'VALD_flex_R')], na.rm = T)
+data$VALD_ext <- rowMeans(data[, c('VALD_ext_L', 'VALD_ext_R')], na.rm = T)
+```
+
+# FESR (Strength ratio)
+```{r}
+data$ratio_R <- data$VALD_flex_R / data$VALD_ext_R
+data$ratio_L <- data$VALD_flex_L / data$VALD_ext_L
+data$ratio_total <- data$VALD_flex / data$VALD_ext
+```
+
+# Attempts equality
+```{r}
+data_2_attempts <- data[c(1:11),]
+data_3_attempts <- data[c(12:nrow(data)),]
+t.test(data_2_attempts$ratio_total, data_3_attempts$ratio_total, var.equal = FALSE)
+```
+
+
+# Sample descriptives
+```{r}
+descriptive <- round(pastecs::stat.desc(data[, c(2:4, 7, 9:11, 13:34)], p = 0.95, norm = T), 3)
+descriptive <- as.data.frame(descriptive)
+
+descriptive_body <- descriptive[c(4:6, 8:10, 13),]
+
+descriptive_body_normality <- data %>%
+  shapiro_test(
+    height, weight, age, 
+    years_of_exp, 
+    training_hours_per_week,
+    footsc_weight_dist_L,
+    footsc_weight_dist_R,
+    handstand_30s, 
+    VALD_flex_L_N_1, 
+    VALD_flex_L_N_2, 
+    VALD_flex_L_N_3, 
+    VALD_flex_R_N_1, 
+    VALD_flex_R_N_2, 
+    VALD_flex_R_N_3, 
+    VALD_ext_L_N_1, 
+    VALD_ext_L_N_2, 
+    VALD_ext_L_N_3, 
+    VALD_ext_R_N_1, 
+    VALD_ext_R_N_2, 
+    VALD_ext_R_N_3,
+    VALD_flex_L,
+    VALD_flex_R,
+    VALD_ext_L, 
+    VALD_ext_R, 
+    VALD_flex,
+    VALD_ext
+  )
+
+
+descriptive_body <- as.data.frame(t(descriptive_body))
+
+descriptive_body$variable <- rownames(descriptive_body)
+
+descriptive_normality_ordered <- descriptive_body_normality[match(descriptive_body$variable, 
+                                                                  descriptive_body_normality$variable), ]
+
+descriptive_body <- cbind(descriptive_body[, c(8, 1:7)], descriptive_normality_ordered[, c("statistic", "p")])
+
+descriptive_body <- as.data.frame(descriptive_body)
+
+descriptive_body <- descriptive_body %>%
+  mutate(variable = dplyr::recode(variable, 
+                           height = 'Height (cm)',
+                           weight = 'Weight (kg)', 
+                           age = 'Age (years)',
+                           years_of_exp = "Experience (years)",
+                           training_hours_per_week = "Training hours/week",
+                           footsc_weight_dist_L = 'Left side load (%)',
+                           footsc_weight_dist_R = 'Right side load (%)',
+                           handstand_30s = 'Handstand 30s (mm)',
+                           VALD_flex_L_N_1 = 'Left flexion 1st attempt (N)',
+                           VALD_flex_L_N_2 = 'Left flexion 2nd attempt (N)',
+                           VALD_flex_L_N_3 = 'Left flexion 3rd attempt (N)',
+                           VALD_flex_R_N_1 = 'Right flexion 1st attempt (N)',
+                           VALD_flex_R_N_2 = 'Right flexion 2nd attempt (N)',
+                           VALD_flex_R_N_3 = 'Right flexion 3rd attempt (N)',
+                           VALD_ext_L_N_1 = 'Left extension 1st attempt (N)',
+                           VALD_ext_L_N_2 = 'Left extension 2nd attempt (N)',
+                           VALD_ext_L_N_3 = 'Left extension 3rd attempt (N)',
+                           VALD_ext_R_N_1 = 'Right extension 1st attempt (N)',
+                           VALD_ext_R_N_2 = 'Right extension 2nd attempt (N)',
+                           VALD_ext_R_N_3 = 'Right extension 3rd attempt (N)',
+                           VALD_flex_L = 'Left flexion (N)',
+                           VALD_flex_R = 'Right flexion (N)',
+                           VALD_ext_L = 'Left extension (N)',
+                           VALD_ext_R = 'Right extension (N)',
+                           VALD_flex = 'Flexion (N)',
+                           VALD_ext = 'Extension (N)',
+                           ratio_L = 'Left arm strength ratio',
+                           ratio_R = 'Right arm strength ratio',
+                           ratio_total = 'Total strength ratio'))
+
+
+descriptive_body <- descriptive_body[, c(1, 6, 8, 2, 3, 9, 10)]
+
+descriptive_body <- descriptive_body %>%
+  rename("Variable" = "variable",
+         "Mean" = "mean",
+         "SD" = "std.dev",
+         "Min" = "min", 
+         "Max" = "max", 
+         "Statistic" = "statistic", 
+         "p-value" = "p")
+
+# remove attempts - keep only VALD averages
+descriptive_body <- descriptive_body[c(1:8, 21:24, 27:28, 25:26, 29),]
+print(descriptive_body)
+
+```
+
+### Median and IQR values
+```{r}
+lapply(data[, c('age', 'height', 'VALD_flex_R')], median)
+lapply(data[, c('age', 'height', 'VALD_flex_R')], IQR)
+```
+
+
+# Inferential analysis
+## Dependent variable distribution
+```{r}
+shapiro_test(data = data$handstand_30s)
+
+ggplot(data = data, aes(x = handstand_30s)) + geom_density(color = "black", 
+                                                                fill = "orange", 
+                                                                alpha = 0.5)
+
+descdist(data = data$handstand_30s, boot = 5000)
+
+norm_30s <- fitdist(data = data$handstand_30s, "norm")
+lognorm_30s <- fitdist(data = data$handstand_30s, "lnorm")
+
+summary(norm_30s)
+gofstat(norm_30s)
+summary(lognorm_30s)
+gofstat(lognorm_30s)
+
+
+# plotting the density and CDF of the variable
+plotdist(data = data$handstand_30s, histo = T, demp = T)
+
+cdfcomp(list(norm_30s, lognorm_30s),
+        xlogscale = F, ylogscale = F, 
+        legendtext = c("normal", "lognormal"))
+```
+
+
+## Model set-up
+```{r}
+model_a <- lm(handstand_30s ~ ratio_total + exp_level + years_of_exp, data = data)
+```
+
+## Multicollinearity 
+### Variance Inflation Factor `car` package
+```{r}
+(VIF_model_a <- car::vif(model_a))
+```
+
+#### Visualization
+```{r}
+par(mar = c(5, 10, 4, 8) + 0.2)
+barplot(VIF_model_a, main = 'VIF values for the model',beside = TRUE, horiz = T,
+        col = 'orange', xlim = c(0,12), border = "black", axes = T,
+        cex.names = 1.0, las = 1, xlab = "Variance Inflation Factor (car)")
+abline(v = 5, col = "black", lty = 2)
+abline(v = 10, col = "red", lty = 2)
+dev.off()
+```
+
+### Variance Inflation Factor `performance` package
+```{r}
+(VIF_model_a_performance <- performance::check_collinearity(model_a, component = "all"))
+```
+
+#### Visualization
+```{r}
+plot(VIF_model_a_performance)
+```
+
+### Print the model fit
+```{r}
+print(model_a)
+```
+
+### Summary of the model
+```{r}
+summary(model_a)
+```
+
+### Model results
+```{r}
+(confs_model_a <- confint(model_a))
+
+(confs_model_a_low <- confs_model_a[, 1])
+confs_model_a_low[-1]
+(confs_model_a_upp <- confs_model_a[, 2])
+
+confs_model_a_upp[-1]
+
+broom::tidy(model_a, conf.int = T)
+
+broom::glance(model_a)
+
+augmented_model_a <- broom::augment(model_a)
+print(augmented_model_a, n = Inf)
+```
+
+#### Model results - table
+```{r}
+confs_model_a <- confint(model_a)
+estimates_model_a <- coef(summary(model_a))
+model_a_info <- cbind(estimates_model_a, confs_model_a)
+model_a_info <- as.data.frame(model_a_info)
+model_a_info <- model_a_info %>%
+  dplyr::rename('Coefficients' = 'Estimate', 'p value' = 'Pr(>|t|)', 'CI lower' = '2.5 %', 'CI upper' = '97.5 %')
+model_a_info <- model_a_info %>%
+  mutate_if(is.numeric, round, digits = 5)
+model_a_info$Predictor <- rownames(model_a_info)
+model_a_info <- model_a_info[, c(7, 1:6)]
+
+model_a_info$`95%CI` <- paste0("[",
+                               round(model_a_info$`CI lower`,
+                                     digits = 3),
+                               ", ",
+                               round(model_a_info$`CI upper`, 
+                                     digits = 3), 
+                               "]")
+
+model_a_info <- model_a_info[, c(1, 2, 8, 3:5)]
+
+model_a_info <- model_a_info %>%
+  mutate(Predictor = dplyr::recode(Predictor,
+                            "ratio_total" = "Total strength ratio",
+                            "exp_levelnational" = "Experience level",
+                            "years_of_exp" = "Years of experience"))
+
+print(model_a_info)
+```
+
+
+# Homoscedasticity 
+```{r}
+(car::ncvTest(model = model_a))
+plot(model_a)
+
+
+res <- DHARMa::simulateResiduals(fittedModel = model_a, n = 10000)
+residuals(res, quantileFunction = qnorm)
+
+# normality test of residuals
+shapiro.test(residuals(res, quantileFunction = qnorm))
+
+plot_res <- DHARMa::plotQQunif(res,
+                                   testUniformity = T,
+                                   testOutliers = T,
+                                   testDispersion = T, pch = 20)
+
+plot_res1 <- DHARMa::plotResiduals(res)
+```
+
+# Independence of residuals
+```{r}
+lmtest::dwtest(handstand_30s ~ ratio_total + exp_level + years_of_exp, data = data)
+```
+
+# Normal distribution of residuals
+```{r}
+model_a_residuals <- resid(model_a)
+qqnorm(model_a_residuals)
+qqline(model_a_residuals)
+
+# with 95%CIs
+car::qqPlot(model_a_residuals, xlab = "Quantiles", ylab = "Model 1 residuals", grid = F, pch = 20)
+```
+
+# Visualization
+## All estimates together
+```{r warning=FALSE}
+(model_a_plot <- sjPlot::plot_model(model = model_a, 
+                                title = "",
+                                vline.color = "black", 
+                                sort.est = T, 
+                                show.values = TRUE, 
+                                value.offset = .4)) + 
+  theme_sjplot2()
+```
+
+## All estimates separately
+```{r}
+model_a_eff_plot_ratio <- jtools::effect_plot(
+  model = model_a,
+  pred = ratio_total,
+  data = data,
+  interval = TRUE,
+  line.thickness = 0.8, 
+  line.colors = "darkblue",
+  plot.points = TRUE, 
+  x.label = "FESR", 
+  y.label = "Handstand CoP (mm)",
+  theme = theme_bw(base_size = 20)
+) + scale_y_continuous(breaks = c(0, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000)) + 
+    theme(axis.text.x = element_text(angle = 0), 
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())
+        
+
+
+model_a_eff_plot_level <- jtools::effect_plot(
+  model = model_a,
+  pred = exp_level,
+  data = data,
+  interval = TRUE, 
+  line.thickness = 0.8, 
+  line.colors = "darkblue",
+  plot.points = TRUE, 
+  x.label = "Experience level", 
+  y.label = "Handstand CoP (mm)",
+  theme = theme_bw(base_size = 20)
+) +
+    scale_y_continuous(breaks = c(0, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000))+
+    theme(axis.text.x = element_text(angle = 0), 
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())
+
+
+model_a_eff_plot_years <- jtools::effect_plot(
+  model = model_a,
+  pred = years_of_exp,
+  data = data,
+  interval = TRUE,
+  line.thickness = 0.8, 
+  line.colors = "darkblue",
+  plot.points = TRUE, 
+  x.label = "Years of experience", 
+  y.label = "Handstand CoP (mm)",
+  theme = theme_bw(base_size = 20)
+) + scale_y_continuous(breaks = c(0, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000)) +
+    theme(axis.text.x = element_text(angle = 0), 
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())
+  
+
+
+(all_eff_plots <- gridExtra::grid.arrange(model_a_eff_plot_ratio, 
+                                          model_a_eff_plot_level, 
+                                          model_a_eff_plot_years, 
+                                          ncol = 3))
+```
+
+# References
+[^note1]:Wickham, H., Bryan, J., Posit, P. (Copyright holder of all R. code and all C. code without explicit copyright, code), M. K. (Author of included R., code), K. V. (Author of included libxls, code), C. L. (Author of included libxls, code), B. C. (Author of included libxls, code), D. H. (Author of included libxls, & code), E. M. (Author of included libxls. (2023). readxl: Read Excel Files (Verze 1.4.3) [Software]. https://cran.r-project.org/web/packages/readxl/index.html
+[^note2]:Ooms, J., & McNamara, J. (2024). writexl: Export Data Frames to Excel „xlsx" Format (Verze 1.5.1) [Software]. https://cran.r-project.org/web/packages/writexl/index.html
+[^note3]:Wickham, H., François, R., Henry, L., Müller, K., Vaughan, D., Software, P., & PBC. (2023). dplyr: A Grammar of Data Manipulation (Verze 1.1.4) [Software]. https://cran.r-project.org/web/packages/dplyr/index.html
+[^note4]:Wickham, H., Chang, W., Henry, L., Pedersen, T. L., Takahashi, K., Wilke, C., Woo, K., Yutani, H., Dunnington, D., Posit, & PBC. (2023). ggplot2: Create Elegant Data Visualisations Using the Grammar of Graphics (Verze 3.4.4) [Software]. https://cran.r-project.org/web/packages/ggplot2/index.html
+[^note5]:Kassambara, A. (2022). _rstatix: Pipe-Friendly Framework for Basic Statistical Tests_. R package version 0.7.1 (Verze R package version 0.7.1) [Software]. https://CRAN.R-project.org/package=rstatix
+[^note6]:Hothorn, T., Zeileis, A., Farebrother  (pan.f), R. W., Cummins  (pan.f), C., Millo, G., & Mitchell, D. (2022). lmtest: Testing Linear Regression Models (Verze 0.9-40) [Software]. https://cran.r-project.org/web/packages/lmtest/index.html
+[^note7]:Fox, J., Weisberg, S., Price, B., Adler, D., Bates, D., Baud-Bovy, G., Bolker, B., Ellison, S., Firth, D., Friendly, M., Gorjanc, G., Graves, S., Heiberger, R., Krivitsky, P., Laboissiere, R., Maechler, M., Monette, G., Murdoch, D., Nilsson, H., … R-Core. (2022). car: Companion to Applied Regression (Verze 3.1-1) [Software]. https://CRAN.R-project.org/package=car
+[^note8]:Wickham, H., & RStudio. (2023). tidyverse: Easily Install and Load the „Tidyverse" (Verze 2.0.0) [Software]. https://cran.r-project.org/web/packages/tidyverse/index.html
+[^note9]:Wickham, H., Vaughan, D., Girlich, M., Ushey, K., Software, P., & PBC. (2024). tidyr: Tidy Messy Data (Verze 1.3.1) [Software]. https://cran.r-project.org/web/packages/tidyr/index.html
+[^note10]:Kay, M., & Wiernik, B. M. (2024). ggdist: Visualizations of Distributions and Uncertainty (Verze 3.3.2) [Software]. https://cran.r-project.org/web/packages/ggdist/index.html
+[^note11]:Delignette-Muller, M.-L., Dutang, C., Pouillot, R., Denis, J.-B., & Siberchicot, A. (2023). fitdistrplus: Help to Fit of a Parametric Distribution to Non-Censored or Censored Data (Verze 1.1-11) [Software]. https://cran.r-project.org/web/packages/fitdistrplus/index.html
+[^note12]:Auguie, B., & Antonov, A. (2017). gridExtra: Miscellaneous Functions for „Grid" Graphics (Verze 2.3) [Software]. https://cran.r-project.org/web/packages/gridExtra/index.html
+[^note13]:Arnold, J. B., Daroczi, G., Werth, B., Weitzner, B., Kunst, J., & Auguie, B. (2024). ggthemes: Extra Themes, Scales and Geoms for „ggplot2" (Verze 5.1.0) [Software]. https://cran.r-project.org/web/packages/ggthemes/index.html
+[^note14]:Dancho, M., & Vaughan, D. (2025). tidyquant: Tidy Quantitative Financial Analysis (Verze 1.0.10) [Software]. https://cran.r-project.org/web/packages/tidyquant/index.html
+[^note15]:Gamer, M., Lemon, J., & Singh, I. F. P. (2019). irr: Various Coefficients of Interrater Reliability and Agreement (Verze 0.84.1) [Software]. https://CRAN.R-project.org/package=irr
+[^note16]:Thériault, R. (2025). rempsyc: Convenience Functions for Psychology (Verze 0.1.9) [Software]. https://cran.r-project.org/web/packages/rempsyc/index.html
+[^note17]:Gohel, D., Moog, S., Heckmann, M., ArData, body_replace_all_text), F. H. (function, fixes), L. S. (several documentation, structures), A. V. (fixes xml, vignettes), J. C. (update, annotate_base), J. H. (function, compatibility), J. M. (google doc, as.matrix.rpptx), B. D. (function, documents), N. B. (set speaker notes for pptx, ppt), G. L. (fields functionality in, Eismann, M., Jia, H., & Stackhouse, M. (2025). officer: Manipulation of Microsoft Word and PowerPoint Documents (Verze 0.6.10) [Software]. https://cran.r-project.org/web/packages/officer/index.html
+[^note18]:Gohel, D., ArData, Jager, C., Daniels, E., Skintzos, P., Fazilleau, Q., Nazarov, M., Robert, T., Barrowman, M., Yasumoto, A., Julian, P., Browning, S., Thériault, R., Jobert, S., & Newman, K. (2025). flextable: Functions for Tabular Reporting (Verze 0.9.9) [Software]. https://cran.r-project.org/web/packages/flextable/index.html
+[^note19]:Hartig, F., & Lohse, L. (2022). DHARMa: Residual Diagnostics for Hierarchical (Multi-Level / Mixed) Regression Models (Verze 0.4.6) [Software]. https://cran.r-project.org/web/packages/DHARMa/index.html
+[^note20]:Lüdecke, D., Makowski, D., Ben-Shachar, M. S., Patil, I., Waggoner, P., Wiernik, B. M., Arel-Bundock, V., Thériault, R., Jullum, M., & gjo11. (2022). performance: Assessment of Regression Models Performance (Verze 0.10.0) [Software]. https://CRAN.R-project.org/package=performance
+[^note21]:Lüdecke, D., Bartel, A., Schwemmer, C., Powell, C., Djalovski, A., & Titz, J. (2024). sjPlot: Data Visualization for Statistics in Social Science (Verze 2.8.16) [Software]. https://cran.r-project.org/web/packages/sjPlot/index.html
+[^note22]:Gordon, M. (2025). Gmisc: Descriptive Statistics, Transition Plots, and More (Verze 3.0.4) [Software]. https://cran.r-project.org/web/packages/Gmisc/index.html
+[^note23]:Long, J. A. (2024). jtools: Analysis and Presentation of Social Scientific Data (Verze 2.3.0) [Software]. https://cran.r-project.org/web/packages/jtools/index.html
+[^note24]:Hester, J., Bryan, J., Software, P., & PBC. (2024). glue: Interpreted String Literals (Verze 1.8.0) [Software]. https://cran.r-project.org/web/packages/glue/index.html
+[^note25]:Stanley, D. (2021). apaTables: Create American Psychological Association (APA) Style Tables (Verze 2.0.8) [Software]. https://cran.r-project.org/web/packages/apaTables/index.html
+[^note26]:Gordon, M., Gragg, S., & Konings, P. (2024). htmlTable: Advanced Tables for Markdown/HTML (Verze 2.4.3) [Software]. https://cran.r-project.org/web/packages/htmlTable/index.html
+[^note27]:Stefan Milton Bache (Original author and creator of, Wickham, H., Henry, L., Software, P., PBC [cph, & fnd. (2025). magrittr: A Forward-Pipe Operator for R (Verze 2.0.4) [Software]. https://cran.r-project.org/web/packages/magrittr/index.html
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
